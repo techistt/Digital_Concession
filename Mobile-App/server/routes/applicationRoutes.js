@@ -1,49 +1,112 @@
 const express = require('express');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const Application = require('../models/Application');
 
 const router = express.Router();
 
-// Submit a new bus concession application
-router.post('/', async (req, res) => {
-  try {
-    const application = new Application(req.body);
+const uploadDir = path.join(__dirname, '../uploads');
 
-    const savedApplication = await application.save();
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
-    res.status(201).json({
-      success: true,
-      message: 'Application submitted successfully.',
-      application: savedApplication,
-    });
-  } catch (error) {
-    console.error('Application submission error:', error);
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
 
-    res.status(400).json({
-      success: false,
-      message: 'Failed to submit application.',
-      error: error.message,
-    });
-  }
+  filename: (req, file, cb) => {
+    const uniqueName =
+      `${Date.now()}-${Math.round(Math.random() * 1e9)}` +
+      path.extname(file.originalname);
+
+    cb(null, uniqueName);
+  },
 });
+
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = [
+    'image/jpeg',
+    'image/png',
+    'application/pdf',
+  ];
+
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only JPG, PNG and PDF files are allowed.'));
+  }
+};
+
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+  },
+});
+
+// Submit application
+router.post(
+  '/',
+  upload.fields([
+    { name: 'studentPhoto', maxCount: 1 },
+    { name: 'aadhaarDocument', maxCount: 1 },
+    { name: 'bonafideCertificate', maxCount: 1 },
+  ]),
+  async (req, res) => {
+    try {
+      const applicationData = {
+        ...req.body,
+        studentPhoto: req.files?.studentPhoto?.[0]
+          ? `/uploads/${req.files.studentPhoto[0].filename}`
+          : null,
+
+        aadhaarDocument: req.files?.aadhaarDocument?.[0]
+          ? `/uploads/${req.files.aadhaarDocument[0].filename}`
+          : null,
+
+        bonafideCertificate: req.files?.bonafideCertificate?.[0]
+          ? `/uploads/${req.files.bonafideCertificate[0].filename}`
+          : null,
+      };
+
+      const application = await Application.create(applicationData);
+
+      res.status(201).json({
+        success: true,
+        message: 'Application submitted successfully.',
+        application,
+      });
+    } catch (error) {
+      console.error('Application submission error:', error);
+
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to submit application.',
+      });
+    }
+  }
+);
 
 // Get all applications
 router.get('/', async (req, res) => {
   try {
-    const applications = await Application.find().sort({
-      createdAt: -1,
-    });
+    const applications = await Application.find()
+      .sort({ createdAt: -1 });
 
     res.json({
       success: true,
       applications,
     });
   } catch (error) {
-    console.error('Fetch applications error:', error);
+    console.error('Error fetching applications:', error);
 
     res.status(500).json({
       success: false,
       message: 'Failed to fetch applications.',
-      error: error.message,
     });
   }
 });
@@ -65,10 +128,11 @@ router.get('/:id', async (req, res) => {
       application,
     });
   } catch (error) {
-    res.status(400).json({
+    console.error('Error fetching application:', error);
+
+    res.status(500).json({
       success: false,
-      message: 'Invalid application ID.',
-      error: error.message,
+      message: 'Failed to fetch application.',
     });
   }
 });

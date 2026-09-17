@@ -42,3 +42,7 @@ example
 /ios
 /android
 server/.env
+
+  
+# Uploaded student documents
+server/uploads/

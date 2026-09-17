@@ -98,10 +98,25 @@ const applicationSchema = new mongoose.Schema(
       trim: true,
     },
 
-    studentId: {
+        studentId: {
       type: String,
       required: true,
       trim: true,
+    },
+
+    studentPhoto: {
+      type: String,
+      default: null,
+    },
+
+    aadhaarDocument: {
+      type: String,
+      default: null,
+    },
+
+    bonafideCertificate: {
+      type: String,
+      default: null,
     },
 
     status: {
