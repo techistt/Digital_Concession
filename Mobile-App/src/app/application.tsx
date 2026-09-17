@@ -1,6 +1,9 @@
 import { router } from 'expo-router';
 import axios from 'axios';
 import React, { useState } from 'react';
+import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
+
 import {
   Alert,
   KeyboardAvoidingView,
@@ -13,14 +16,21 @@ import {
   View,
 } from 'react-native';
 
-type FormData = {
+type SelectedFile = {
+  uri: string;
+  name?: string;
+  fileName?: string;
+  mimeType?: string;
+  size?: number;
+};
+
+type FormState = {
   fullName: string;
   dateOfBirth: string;
-  age: string;
   gender: string;
   guardianName: string;
   phone: string;
-  aadhaar: string;
+  aadhaarNumber: string;
   email: string;
   address: string;
   place: string;
@@ -33,49 +43,47 @@ type FormData = {
   studentId: string;
 };
 
-type InputFieldProps = {
-  label: string;
-  field: keyof FormData;
-  value: string;
-  placeholder: string;
-  keyboardType?: 'default' | 'numeric' | 'phone-pad' | 'email-address';
-  onChangeText: (field: keyof FormData, value: string) => void;
-};
-
-function InputField({
+const InputField = ({
   label,
-  field,
   value,
+  onChangeText,
   placeholder,
   keyboardType = 'default',
-  onChangeText,
-}: InputFieldProps) {
+  multiline = false,
+}: {
+  label: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  placeholder?: string;
+  keyboardType?: any;
+  multiline?: boolean;
+}) => {
   return (
     <View style={styles.fieldContainer}>
       <Text style={styles.label}>{label}</Text>
 
       <TextInput
-        style={styles.input}
+        style={[styles.input, multiline && styles.multilineInput]}
         value={value}
-        onChangeText={(text) => onChangeText(field, text)}
+        onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor="#98A2B3"
         keyboardType={keyboardType}
-        autoCapitalize="words"
+        multiline={multiline}
+        textAlignVertical={multiline ? 'top' : 'center'}
       />
     </View>
   );
-}
+};
 
 export default function ApplicationScreen() {
-  const [form, setForm] = useState<FormData>({
+  const [form, setForm] = useState<FormState>({
     fullName: '',
     dateOfBirth: '',
-    age: '',
     gender: '',
     guardianName: '',
     phone: '',
-    aadhaar: '',
+    aadhaarNumber: '',
     email: '',
     address: '',
     place: '',
@@ -90,361 +98,800 @@ export default function ApplicationScreen() {
 
   const [submitting, setSubmitting] = useState(false);
 
-  const updateField = (field: keyof FormData, value: string) => {
+  const [studentPhoto, setStudentPhoto] =
+    useState<SelectedFile | null>(null);
+
+  const [studentIdCard, setStudentIdCard] =
+    useState<SelectedFile | null>(null);
+
+  const [aadhaarCard, setAadhaarCard] =
+    useState<SelectedFile | null>(null);
+
+  const [previousConcessionCard, setPreviousConcessionCard] =
+    useState<SelectedFile | null>(null);
+
+  const [institutionApprovalForm, setInstitutionApprovalForm] =
+    useState<SelectedFile | null>(null);
+
+  const [rationCard, setRationCard] =
+    useState<SelectedFile | null>(null);
+
+  const updateField = (field: keyof FormState, value: string) => {
     setForm((previous) => ({
       ...previous,
       [field]: value,
     }));
   };
 
-  const handleSubmit = async () => {
-    if (!form.fullName.trim()) {
-      Alert.alert('Missing Field', 'Please enter your full name.');
-      return;
+  const calculateAge = () => {
+    if (!form.dateOfBirth) {
+      return '';
     }
 
-    if (!form.dateOfBirth.trim()) {
-      Alert.alert('Missing Field', 'Please enter your date of birth.');
-      return;
+    const parts = form.dateOfBirth.split('/');
+
+    if (parts.length !== 3) {
+      return '';
     }
 
-    if (!form.age.trim()) {
-      Alert.alert('Missing Field', 'Please enter your age.');
-      return;
+    const day = Number(parts[0]);
+    const month = Number(parts[1]);
+    const year = Number(parts[2]);
+
+    if (!day || !month || !year) {
+      return '';
     }
 
-    const age = Number(form.age);
+    const birthDate = new Date(year, month - 1, day);
+    const today = new Date();
 
-    if (!Number.isInteger(age) || age < 5 || age > 100) {
+    let age = today.getFullYear() - birthDate.getFullYear();
+
+    const monthDifference =
+      today.getMonth() - birthDate.getMonth();
+
+    if (
+      monthDifference < 0 ||
+      (monthDifference === 0 &&
+        today.getDate() < birthDate.getDate())
+    ) {
+      age--;
+    }
+
+    return age >= 0 ? String(age) : '';
+  };
+
+  const age = calculateAge();
+
+  const pickStudentPhoto = async () => {
+    try {
+      const result =
+        await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.8,
+        });
+
+      if (
+        !result.canceled &&
+        result.assets?.length > 0
+      ) {
+        const file = result.assets[0];
+
+        if (
+          file.fileSize &&
+          file.fileSize > 5 * 1024 * 1024
+        ) {
+          Alert.alert(
+            'File Too Large',
+            'The student photo must be 5 MB or smaller.'
+          );
+          return;
+        }
+
+        setStudentPhoto({
+          uri: file.uri,
+          fileName: file.fileName ?? undefined,
+          mimeType: file.mimeType ?? undefined,
+          size: file.fileSize,
+        });
+      }
+    } catch (error) {
+      console.error('Photo picker error:', error);
+
       Alert.alert(
-        'Invalid Age',
-        'Please enter a valid age between 5 and 100.'
+        'Photo Error',
+        'Could not open the photo picker.'
       );
-      return;
     }
+  };
 
-    if (!form.gender.trim()) {
-      Alert.alert('Missing Field', 'Please enter your gender.');
-      return;
-    }
+  const pickDocument = async (
+    setter: React.Dispatch<
+      React.SetStateAction<SelectedFile | null>
+    >
+  ) => {
+    try {
+      const result =
+        await DocumentPicker.getDocumentAsync({
+          type: [
+            'image/jpeg',
+            'image/png',
+            'application/pdf',
+          ],
+          copyToCacheDirectory: true,
+        });
 
-    if (!form.guardianName.trim()) {
-      Alert.alert('Missing Field', 'Please enter the guardian name.');
-      return;
-    }
+      if (
+        !result.canceled &&
+        result.assets?.length > 0
+      ) {
+        const file = result.assets[0];
 
-    if (!form.phone.trim()) {
-      Alert.alert('Missing Field', 'Please enter your phone number.');
-      return;
-    }
+        if (
+          file.size &&
+          file.size > 5 * 1024 * 1024
+        ) {
+          Alert.alert(
+            'File Too Large',
+            'Each document must be 5 MB or smaller.'
+          );
+          return;
+        }
 
-    if (!/^\d{10}$/.test(form.phone.trim())) {
+        setter({
+          uri: file.uri,
+          name: file.name ?? undefined,
+          mimeType: file.mimeType ?? undefined,
+          size: file.size,
+        });
+      }
+    } catch (error) {
+      console.error('Document picker error:', error);
+
       Alert.alert(
-        'Invalid Phone',
-        'Phone number must contain exactly 10 digits.'
+        'Document Error',
+        'Could not open the document picker.'
       );
-      return;
+    }
+  };
+
+  const validateForm = () => {
+    const requiredFields: Array<
+      [keyof FormState, string]
+    > = [
+        ['fullName', 'Full name'],
+        ['dateOfBirth', 'Date of birth'],
+        ['gender', 'Gender'],
+        ['guardianName', 'Guardian name'],
+        ['phone', 'Phone number'],
+        ['aadhaarNumber', 'Aadhaar number'],
+        ['email', 'Email'],
+        ['address', 'Address'],
+        ['place', 'Place'],
+        ['postalName', 'Postal name'],
+        ['pincode', 'Pincode'],
+        ['district', 'District'],
+        ['institutionName', 'Institution name'],
+        ['institutionDistrict', 'Institution district'],
+        ['course', 'Course'],
+        ['studentId', 'Roll number / Student ID'],
+      ];
+
+    for (const [field, label] of requiredFields) {
+      if (!form[field].trim()) {
+        Alert.alert(
+          'Missing Information',
+          `Please enter ${label}.`
+        );
+        return false;
+      }
     }
 
-    if (!form.aadhaar.trim()) {
-      Alert.alert('Missing Field', 'Please enter the Aadhaar number.');
-      return;
-    }
-
-    if (!/^\d{12}$/.test(form.aadhaar.trim())) {
+    if (!/^\d{10}$/.test(form.phone)) {
       Alert.alert(
-        'Invalid Aadhaar',
-        'Aadhaar number must contain exactly 12 digits.'
+        'Invalid Phone Number',
+        'Please enter a valid 10-digit phone number.'
       );
-      return;
+      return false;
     }
 
-    if (!form.email.trim()) {
-      Alert.alert('Missing Field', 'Please enter your email address.');
-      return;
+    if (!/^\d{12}$/.test(form.aadhaarNumber)) {
+      Alert.alert(
+        'Invalid Aadhaar Number',
+        'Please enter a valid 12-digit Aadhaar number.'
+      );
+      return false;
     }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
-      Alert.alert('Invalid Email', 'Please enter a valid email address.');
-      return;
-    }
-
-    if (!form.address.trim()) {
-      Alert.alert('Missing Field', 'Please enter your address.');
-      return;
-    }
-
-    if (!form.place.trim()) {
-      Alert.alert('Missing Field', 'Please enter your place.');
-      return;
-    }
-
-    if (!form.postalName.trim()) {
-      Alert.alert('Missing Field', 'Please enter your postal name.');
-      return;
-    }
-
-    if (!form.pincode.trim()) {
-      Alert.alert('Missing Field', 'Please enter your pincode.');
-      return;
-    }
-
-    if (!/^\d{6}$/.test(form.pincode.trim())) {
+    if (!/^\d{6}$/.test(form.pincode)) {
       Alert.alert(
         'Invalid Pincode',
-        'Pincode must contain exactly 6 digits.'
+        'Please enter a valid 6-digit pincode.'
       );
-      return;
+      return false;
     }
 
-    if (!form.district.trim()) {
-      Alert.alert('Missing Field', 'Please enter your district.');
-      return;
-    }
-
-    if (!form.institutionName.trim()) {
+    if (!form.email.includes('@')) {
       Alert.alert(
-        'Missing Field',
-        'Please enter your institution name.'
+        'Invalid Email',
+        'Please enter a valid email address.'
       );
-      return;
+      return false;
     }
 
-    if (!form.institutionDistrict.trim()) {
+    if (!studentPhoto) {
       Alert.alert(
-        'Missing Field',
-        'Please enter your institution district.'
+        'Missing Document',
+        'Student photo is required.'
       );
-      return;
+      return false;
     }
 
-    if (!form.course.trim()) {
-      Alert.alert('Missing Field', 'Please enter your course.');
-      return;
-    }
-
-    if (!form.studentId.trim()) {
+    if (!studentIdCard) {
       Alert.alert(
-        'Missing Field',
-        'Please enter your roll number / student ID.'
+        'Missing Document',
+        'Student ID card is required.'
       );
+      return false;
+    }
+
+    if (!aadhaarCard) {
+      Alert.alert(
+        'Missing Document',
+        'Aadhaar card is required.'
+      );
+      return false;
+    }
+
+    if (!institutionApprovalForm) {
+      Alert.alert(
+        'Missing Document',
+        'Educational Institution Approval Form (Form 1) is required.'
+      );
+      return false;
+    }
+
+    if (!rationCard) {
+      Alert.alert(
+        'Missing Document',
+        'Ration card is required.'
+      );
+      return false;
+    }
+
+    return true;
+  };
+
+  const submitApplication = async () => {
+    if (!validateForm()) {
       return;
     }
 
     try {
       setSubmitting(true);
 
+      const data = new FormData();
+
+      Object.entries({
+        ...form,
+        age,
+      }).forEach(([key, value]) => {
+        data.append(key, String(value));
+      });
+
+      data.append(
+        'studentPhoto',
+        {
+          uri: studentPhoto!.uri,
+          name:
+            studentPhoto!.fileName ||
+            'student-photo.jpg',
+          type:
+            studentPhoto!.mimeType ||
+            'image/jpeg',
+        } as any
+      );
+
+      data.append(
+        'studentIdCard',
+        {
+          uri: studentIdCard!.uri,
+          name:
+            studentIdCard!.name ||
+            'student-id-card',
+          type:
+            studentIdCard!.mimeType ||
+            'application/pdf',
+        } as any
+      );
+
+      data.append(
+        'aadhaarCard',
+        {
+          uri: aadhaarCard!.uri,
+          name:
+            aadhaarCard!.name ||
+            'aadhaar-card',
+          type:
+            aadhaarCard!.mimeType ||
+            'application/pdf',
+        } as any
+      );
+
+      if (previousConcessionCard) {
+        data.append(
+          'previousConcessionCard',
+          {
+            uri: previousConcessionCard.uri,
+            name:
+              previousConcessionCard.name ||
+              'previous-concession-card',
+            type:
+              previousConcessionCard.mimeType ||
+              'application/pdf',
+          } as any
+        );
+      }
+
+      data.append(
+        'institutionApprovalForm',
+        {
+          uri: institutionApprovalForm!.uri,
+          name:
+            institutionApprovalForm!.name ||
+            'institution-approval-form-1',
+          type:
+            institutionApprovalForm!.mimeType ||
+            'application/pdf',
+        } as any
+      );
+
+      data.append(
+        'rationCard',
+        {
+          uri: rationCard!.uri,
+          name:
+            rationCard!.name ||
+            'ration-card',
+          type:
+            rationCard!.mimeType ||
+            'application/pdf',
+        } as any
+      );
+
       const response = await axios.post(
-         'http://localhost:5000/api/applications',
+        'http://localhost:5000/api/applications',
+        data,
         {
-          ...form,
-          age,
-        },
-        {
-          timeout: 10000,
+          timeout: 30000,
         }
       );
 
-      if (response.data.success) {
-        router.push('/success');
-      } else {
+      if (response.data?.success) {
         Alert.alert(
-          'Submission Failed',
-          response.data.message || 'Application could not be submitted.'
+          'Application Submitted',
+          'Your bus concession application has been submitted successfully.',
+          [
+            {
+              text: 'OK',
+              onPress: () => router.back(),
+            },
+          ]
         );
       }
-    } catch (error) {
-      console.error('Submission error:', error);
+    } catch (error: any) {
+      console.error(
+        'Application submission error:',
+        error
+      );
+
+      const message =
+        error?.response?.data?.message ||
+        'Could not submit the application. Please try again.';
 
       Alert.alert(
-        'Connection Error',
-        'Could not connect to the server. Make sure the backend is running and your phone is connected to the same Wi-Fi network as this computer.'
+        'Submission Failed',
+        message
       );
     } finally {
       setSubmitting(false);
     }
   };
 
+  const fileName = (
+    file: SelectedFile | null,
+    fallback: string
+  ) => {
+    if (!file) {
+      return fallback;
+    }
+
+    return `✓ ${file.fileName ||
+      file.name ||
+      'Document selected'
+      }`;
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={
+        Platform.OS === 'ios'
+          ? 'padding'
+          : undefined
+      }
     >
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={
+          styles.scrollContent
+        }
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.title}>Bus Concession Application</Text>
-
-        <Text style={styles.subtitle}>
-          Enter your details carefully before submitting.
+        <Text style={styles.title}>
+          Bus Concession Application
         </Text>
 
-        <Text style={styles.sectionTitle}>Personal Information</Text>
+        <Text style={styles.subtitle}>
+          Please enter your details and upload the
+          required documents.
+        </Text>
+
+        <Text style={styles.sectionTitle}>
+          Personal Information
+        </Text>
 
         <InputField
           label="Full Name"
-          field="fullName"
           value={form.fullName}
+          onChangeText={(text) =>
+            updateField('fullName', text)
+          }
           placeholder="Enter your full name"
-          onChangeText={updateField}
         />
 
         <InputField
           label="Date of Birth"
-          field="dateOfBirth"
           value={form.dateOfBirth}
+          onChangeText={(text) =>
+            updateField('dateOfBirth', text)
+          }
           placeholder="DD/MM/YYYY"
-          onChangeText={updateField}
+          keyboardType="numeric"
         />
 
         <InputField
           label="Age"
-          field="age"
-          value={form.age}
-          placeholder="Enter your age"
+          value={age}
+          onChangeText={() => { }}
+          placeholder="Calculated automatically"
           keyboardType="numeric"
-          onChangeText={updateField}
         />
 
         <InputField
           label="Gender"
-          field="gender"
           value={form.gender}
+          onChangeText={(text) =>
+            updateField('gender', text)
+          }
           placeholder="Male / Female / Other"
-          onChangeText={updateField}
         />
-
-        <InputField
-          label="Aadhaar Number"
-          field="aadhaar"
-          value={form.aadhaar}
-          placeholder="12-digit Aadhaar number"
-          keyboardType="numeric"
-          onChangeText={updateField}
-        />
-
-        <Text style={styles.sectionTitle}>Guardian Information</Text>
 
         <InputField
           label="Guardian Name"
-          field="guardianName"
           value={form.guardianName}
+          onChangeText={(text) =>
+            updateField('guardianName', text)
+          }
           placeholder="Enter guardian name"
-          onChangeText={updateField}
         />
 
         <InputField
           label="Phone Number"
-          field="phone"
           value={form.phone}
+          onChangeText={(text) =>
+            updateField(
+              'phone',
+              text.replace(/\D/g, '').slice(0, 10)
+            )
+          }
           placeholder="10-digit phone number"
           keyboardType="phone-pad"
-          onChangeText={updateField}
+        />
+
+        <InputField
+          label="Aadhaar Number"
+          value={form.aadhaarNumber}
+          onChangeText={(text) =>
+            updateField(
+              'aadhaarNumber',
+              text.replace(/\D/g, '').slice(0, 12)
+            )
+          }
+          placeholder="12-digit Aadhaar number"
+          keyboardType="numeric"
         />
 
         <InputField
           label="Email"
-          field="email"
           value={form.email}
-          placeholder="Enter email address"
+          onChangeText={(text) =>
+            updateField('email', text)
+          }
+          placeholder="example@email.com"
           keyboardType="email-address"
-          onChangeText={updateField}
         />
 
-        <Text style={styles.sectionTitle}>Address</Text>
+        <Text style={styles.sectionTitle}>
+          Address Information
+        </Text>
 
         <InputField
           label="Address"
-          field="address"
           value={form.address}
-          placeholder="House name / street / address"
-          onChangeText={updateField}
+          onChangeText={(text) =>
+            updateField('address', text)
+          }
+          placeholder="Enter your address"
+          multiline
         />
 
         <InputField
           label="Place"
-          field="place"
           value={form.place}
-          placeholder="Enter your place"
-          onChangeText={updateField}
+          onChangeText={(text) =>
+            updateField('place', text)
+          }
+          placeholder="Enter place"
         />
 
         <InputField
           label="Postal Name"
-          field="postalName"
           value={form.postalName}
-          placeholder="Enter post office"
-          onChangeText={updateField}
+          onChangeText={(text) =>
+            updateField('postalName', text)
+          }
+          placeholder="Enter postal name"
         />
 
         <InputField
           label="Pincode"
-          field="pincode"
           value={form.pincode}
+          onChangeText={(text) =>
+            updateField(
+              'pincode',
+              text.replace(/\D/g, '').slice(0, 6)
+            )
+          }
           placeholder="6-digit pincode"
           keyboardType="numeric"
-          onChangeText={updateField}
         />
 
         <InputField
           label="District"
-          field="district"
           value={form.district}
+          onChangeText={(text) =>
+            updateField('district', text)
+          }
           placeholder="Enter district"
-          onChangeText={updateField}
         />
 
-        <Text style={styles.sectionTitle}>Institution Details</Text>
+        <Text style={styles.sectionTitle}>
+          Institution Information
+        </Text>
 
         <InputField
           label="Institution Name"
-          field="institutionName"
           value={form.institutionName}
+          onChangeText={(text) =>
+            updateField(
+              'institutionName',
+              text
+            )
+          }
           placeholder="Enter institution name"
-          onChangeText={updateField}
         />
 
         <InputField
           label="Institution District"
-          field="institutionDistrict"
           value={form.institutionDistrict}
+          onChangeText={(text) =>
+            updateField(
+              'institutionDistrict',
+              text
+            )
+          }
           placeholder="Enter institution district"
-          onChangeText={updateField}
         />
 
         <InputField
           label="Course"
-          field="course"
           value={form.course}
-          placeholder="Enter your course"
-          onChangeText={updateField}
+          onChangeText={(text) =>
+            updateField('course', text)
+          }
+          placeholder="Enter course"
         />
 
         <InputField
-          label="Roll Number / Student ID"
-          field="studentId"
+          label="Roll No / Student ID"
           value={form.studentId}
-          placeholder="Enter roll number / student ID"
-          onChangeText={updateField}
+          onChangeText={(text) =>
+            updateField('studentId', text)
+          }
+          placeholder="Enter roll number or student ID"
         />
+
+        <View style={styles.uploadSection}>
+          <Text style={styles.sectionTitle}>
+            Required Documents
+          </Text>
+
+          <Text style={styles.requiredNotice}>
+            * Required documents must be uploaded before
+            submission.
+          </Text>
+
+          <Text style={styles.documentLabel}>
+            1. Student Photo *
+          </Text>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.uploadButton,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={pickStudentPhoto}
+          >
+            <Text style={styles.uploadButtonText}>
+              {fileName(
+                studentPhoto,
+                '📷 Select Student Photo'
+              )}
+            </Text>
+          </Pressable>
+
+          <Text style={styles.documentLabel}>
+            2. Student ID Card *
+          </Text>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.uploadButton,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={() =>
+              pickDocument(setStudentIdCard)
+            }
+          >
+            <Text style={styles.uploadButtonText}>
+              {fileName(
+                studentIdCard,
+                '🪪 Select Student ID Card'
+              )}
+            </Text>
+          </Pressable>
+
+          <Text style={styles.documentLabel}>
+            3. Aadhaar Card *
+          </Text>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.uploadButton,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={() =>
+              pickDocument(setAadhaarCard)
+            }
+          >
+            <Text style={styles.uploadButtonText}>
+              {fileName(
+                aadhaarCard,
+                '🪪 Select Aadhaar Card'
+              )}
+            </Text>
+          </Pressable>
+
+          <Text style={styles.documentLabel}>
+            4. Previous Concession Card
+            <Text style={styles.optionalText}>
+              {' '}
+              (Optional)
+            </Text>
+          </Text>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.uploadButton,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={() =>
+              pickDocument(
+                setPreviousConcessionCard
+              )
+            }
+          >
+            <Text style={styles.uploadButtonText}>
+              {fileName(
+                previousConcessionCard,
+                '🎫 Select Previous Concession Card'
+              )}
+            </Text>
+          </Pressable>
+
+          <Text style={styles.documentLabel}>
+            5. Educational Institution Approval Form
+            (Form 1) *
+          </Text>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.uploadButton,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={() =>
+              pickDocument(
+                setInstitutionApprovalForm
+              )
+            }
+          >
+            <Text style={styles.uploadButtonText}>
+              {fileName(
+                institutionApprovalForm,
+                '📄 Select Form 1'
+              )}
+            </Text>
+          </Pressable>
+
+          <Text style={styles.documentLabel}>
+            6. Ration Card *
+          </Text>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.uploadButton,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={() =>
+              pickDocument(setRationCard)
+            }
+          >
+            <Text style={styles.uploadButtonText}>
+              {fileName(
+                rationCard,
+                '📄 Select Ration Card'
+              )}
+            </Text>
+          </Pressable>
+
+          <Text style={styles.uploadHint}>
+            JPG, PNG or PDF • Maximum 5 MB per file
+          </Text>
+        </View>
 
         <Pressable
           style={({ pressed }) => [
             styles.submitButton,
-            pressed && styles.buttonPressed,
             submitting && styles.disabledButton,
+            pressed &&
+            !submitting &&
+            styles.buttonPressed,
           ]}
-          onPress={handleSubmit}
+          onPress={submitApplication}
           disabled={submitting}
         >
           <Text style={styles.submitText}>
-            {submitting ? 'Submitting...' : 'Submit Application'}
+            {submitting
+              ? 'Submitting...'
+              : 'Submit Application'}
           </Text>
         </Pressable>
 
         <Text style={styles.footer}>
-          Please verify all information before submitting.
+          Please verify all information before
+          submitting your application.
         </Text>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -503,6 +950,61 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     fontSize: 16,
     color: '#101828',
+  },
+
+  multilineInput: {
+    height: 100,
+    paddingTop: 14,
+  },
+
+  uploadSection: {
+    marginTop: 10,
+    marginBottom: 5,
+  },
+
+  requiredNotice: {
+    fontSize: 13,
+    color: '#667085',
+    marginBottom: 18,
+  },
+
+  documentLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#344054',
+    marginBottom: 7,
+    lineHeight: 20,
+  },
+
+  optionalText: {
+    color: '#667085',
+    fontWeight: '400',
+  },
+
+  uploadButton: {
+    minHeight: 52,
+    borderWidth: 1,
+    borderColor: '#208AEF',
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 15,
+    marginBottom: 16,
+  },
+
+  uploadButtonText: {
+    color: '#208AEF',
+    fontSize: 15,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+
+  uploadHint: {
+    color: '#667085',
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 2,
   },
 
   submitButton: {

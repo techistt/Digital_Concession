@@ -53,23 +53,62 @@ router.post(
   '/',
   upload.fields([
     { name: 'studentPhoto', maxCount: 1 },
-    { name: 'aadhaarDocument', maxCount: 1 },
-    { name: 'bonafideCertificate', maxCount: 1 },
+    { name: 'studentIdCard', maxCount: 1 },
+    { name: 'aadhaarCard', maxCount: 1 },
+    { name: 'previousConcessionCard', maxCount: 1 },
+    { name: 'institutionApprovalForm', maxCount: 1 },
+    { name: 'rationCard', maxCount: 1 },
   ]),
   async (req, res) => {
     try {
+      const files = req.files || {};
+
+      // Required documents
+      const requiredDocuments = [
+        'studentPhoto',
+        'studentIdCard',
+        'aadhaarCard',
+        'institutionApprovalForm',
+        'rationCard',
+      ];
+
+      const missingDocuments = requiredDocuments.filter(
+        (field) => !files[field]?.[0]
+      );
+
+      if (missingDocuments.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Please upload all required documents.',
+          missingDocuments,
+        });
+      }
+
       const applicationData = {
         ...req.body,
-        studentPhoto: req.files?.studentPhoto?.[0]
-          ? `/uploads/${req.files.studentPhoto[0].filename}`
+
+        studentPhoto: files.studentPhoto[0]
+          ? `/uploads/${files.studentPhoto[0].filename}`
           : null,
 
-        aadhaarDocument: req.files?.aadhaarDocument?.[0]
-          ? `/uploads/${req.files.aadhaarDocument[0].filename}`
+        studentIdCard: files.studentIdCard[0]
+          ? `/uploads/${files.studentIdCard[0].filename}`
           : null,
 
-        bonafideCertificate: req.files?.bonafideCertificate?.[0]
-          ? `/uploads/${req.files.bonafideCertificate[0].filename}`
+        aadhaarCard: files.aadhaarCard[0]
+          ? `/uploads/${files.aadhaarCard[0].filename}`
+          : null,
+
+        previousConcessionCard: files.previousConcessionCard?.[0]
+          ? `/uploads/${files.previousConcessionCard[0].filename}`
+          : null,
+
+        institutionApprovalForm: files.institutionApprovalForm[0]
+          ? `/uploads/${files.institutionApprovalForm[0].filename}`
+          : null,
+
+        rationCard: files.rationCard[0]
+          ? `/uploads/${files.rationCard[0].filename}`
           : null,
       };
 
