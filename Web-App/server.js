@@ -1,121 +1,136 @@
 import express from 'express';
 import cors from 'cors';
+import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const app = express();
 const PORT = 3001;
 
 // Middleware
 app.use(cors());
-app.use(express.json({ limit: '50mb' })); // Increased limit for base64 images
+app.use(express.json({ limit: '50mb' }));
 
-// Initialize with some mock data matching the new schema
-let applications = [
-  {
-    id: "APP-2024-001",
-    status: "pending",
-    dateApplied: "2024-10-24",
-    studentName: "Aditi Sharma",
-    dob: "2003-05-14",
-    age: 21,
-    gender: "Female",
-    guardianName: "Rajesh Sharma",
-    phone: "9876543210",
-    aadhaarNumber: "1234 5678 9012",
-    email: "aditi.sharma@example.com",
-    address: "123, Sunrise Apartments, Main Road",
-    place: "Barton Hill",
-    postalName: "Barton Hill PO",
-    pincode: "695035",
-    district: "Thiruvananthapuram",
-    institution: "Government Engineering College, Barton Hill",
-    institutionDistrict: "Thiruvananthapuram",
-    course: "B.Tech Computer Science",
-    rollNo: "CS21B001",
-    eligibilityCriteria: "Undergraduate Student",
-    rationCardType: "APL",
-    rationCardNumber: "1234567890",
-    travelFrom: "Trivandrum Central",
-    travelTo: "GECB",
-    durationMonths: 6,
-    nearestDepot: "Trivandrum City Depot",
-    remarks: "First time applicant",
-    declaredCorrect: true,
-    agreedToTerms: true,
-    photoUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
-    idProofUrl: "https://images.unsplash.com/photo-1621360841013-c76831f12560?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-    aadhaarCardUrl: "https://images.unsplash.com/photo-1621360841013-c76831f12560?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-    prevConcessionUrl: null,
-    approvalFormUrl: "https://images.unsplash.com/photo-1586281380349-632531db7ed4?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-    rationCardUrl: "https://images.unsplash.com/photo-1586281380349-632531db7ed4?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80"
-  },
-  {
-    id: "APP-2024-002",
-    status: "pending",
-    dateApplied: "2024-10-25",
-    studentName: "Rahul Menon",
-    dob: "2002-11-20",
-    age: 22,
-    gender: "Male",
-    guardianName: "Suresh Menon",
-    phone: "8765432109",
-    aadhaarNumber: "9876 5432 1098",
-    email: "rahul.menon@example.com",
-    address: "45, Green Valley, Phase 2",
-    place: "Kazhakootam",
-    postalName: "Kazhakootam PO",
-    pincode: "695582",
-    district: "Thiruvananthapuram",
-    institution: "College of Engineering Trivandrum",
-    institutionDistrict: "Thiruvananthapuram",
-    course: "B.Tech Mechanical Engineering",
-    rollNo: "ME20B042",
-    eligibilityCriteria: "Undergraduate Student",
-    rationCardType: "BPL",
-    rationCardNumber: "0987654321",
-    travelFrom: "Kazhakootam",
-    travelTo: "CET",
-    durationMonths: 3,
-    nearestDepot: "Kazhakootam Depot",
-    remarks: "Renewal",
-    declaredCorrect: true,
-    agreedToTerms: true,
-    photoUrl: "https://images.unsplash.com/photo-1599566150163-29194dcaad36?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
-    idProofUrl: "https://images.unsplash.com/photo-1621360841013-c76831f12560?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-    aadhaarCardUrl: "https://images.unsplash.com/photo-1621360841013-c76831f12560?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-    prevConcessionUrl: "https://images.unsplash.com/photo-1586281380349-632531db7ed4?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-    approvalFormUrl: "https://images.unsplash.com/photo-1586281380349-632531db7ed4?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-    rationCardUrl: "https://images.unsplash.com/photo-1586281380349-632531db7ed4?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80"
-  }
-];
+// Mongoose Schema matching Mobile-App
+const applicationSchema = new mongoose.Schema(
+    {
+        fullName: { type: String, required: true },
+        dateOfBirth: { type: String, required: true },
+        age: { type: Number, required: true },
+        gender: { type: String, required: true },
+        guardianName: { type: String, required: true },
+        phone: { type: String, required: true },
+        aadhaar: { type: String, required: true },
+        email: { type: String, required: true },
+        address: { type: String, required: true },
+        place: { type: String, required: true },
+        postalName: { type: String, required: true },
+        pincode: { type: String, required: true },
+        district: { type: String, required: true },
+        institutionName: { type: String, required: true },
+        institutionDistrict: { type: String, required: true },
+        course: { type: String, required: true },
+        studentId: { type: String, required: true },
+        studentPhoto: { type: String, required: true },
+        studentIdCard: { type: String, required: true },
+        aadhaarCard: { type: String, required: true },
+        previousConcessionCard: { type: String, default: null },
+        institutionApprovalForm: { type: String, required: true },
+        rationCard: { type: String, required: true },
+        status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+    },
+    { timestamps: true }
+);
+
+const Application = mongoose.model('Application', applicationSchema);
+
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/digital_concession')
+    .then(() => console.log('MongoDB connected successfully.'))
+    .catch(err => console.error('MongoDB connection error:', err));
 
 // GET all applications
-app.get('/api/applications', (req, res) => {
-  res.json(applications);
+app.get('/api/applications', async (req, res) => {
+  try {
+    const apps = await Application.find().sort({ createdAt: -1 });
+    
+    const mappedApps = apps.map(app => ({
+      id: app._id.toString(),
+      status: app.status,
+      dateApplied: app.createdAt ? app.createdAt.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      studentName: app.fullName,
+      dob: app.dateOfBirth,
+      age: app.age,
+      gender: app.gender,
+      guardianName: app.guardianName,
+      phone: app.phone,
+      aadhaarNumber: app.aadhaar,
+      email: app.email,
+      address: app.address,
+      place: app.place,
+      postalName: app.postalName,
+      pincode: app.pincode,
+      district: app.district,
+      institution: app.institutionName,
+      institutionDistrict: app.institutionDistrict,
+      course: app.course,
+      rollNo: app.studentId, // Mapping studentId to rollNo
+      eligibilityCriteria: "Undergraduate Student", // Default or fetch if added
+      rationCardType: "APL", // Default or fetch if added
+      rationCardNumber: "N/A", // Default
+      travelFrom: "Home", // Default
+      travelTo: app.institutionName, // Default
+      durationMonths: 6, // Default
+      nearestDepot: "Unknown", // Default
+      remarks: "Submitted via Mobile App", // Default
+      declaredCorrect: true,
+      agreedToTerms: true,
+      photoUrl: app.studentPhoto,
+      idProofUrl: app.studentIdCard,
+      aadhaarCardUrl: app.aadhaarCard,
+      prevConcessionUrl: app.previousConcessionCard,
+      approvalFormUrl: app.institutionApprovalForm,
+      rationCardUrl: app.rationCard
+    }));
+
+    res.json(mappedApps);
+  } catch (error) {
+    console.error('Error fetching applications:', error);
+    res.status(500).json({ error: 'Failed to fetch applications' });
+  }
 });
 
-// POST a new application from the Android APK
-app.post('/api/applications', (req, res) => {
-  const newApp = {
-    ...req.body,
-    id: `APP-${new Date().getFullYear()}-${String(applications.length + 1).padStart(3, '0')}`,
-    status: 'pending',
-    dateApplied: new Date().toISOString().split('T')[0]
-  };
-  applications.unshift(newApp); // Add to beginning of array
-  res.status(201).json(newApp);
+// POST a new application (if still needed by some Web-App mock flow)
+app.post('/api/applications', async (req, res) => {
+  try {
+    // Reverse map fields if needed, but assuming Web-App doesn't post real data anymore
+    res.status(501).json({ error: 'Please submit applications via Mobile App' });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 // PUT update application status (approve/reject)
-app.put('/api/applications/:id/status', (req, res) => {
+app.put('/api/applications/:id/status', async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
   
-  const appIndex = applications.findIndex(a => a.id === id);
-  if (appIndex !== -1) {
-    applications[appIndex].status = status;
-    res.json(applications[appIndex]);
-  } else {
-    res.status(404).json({ error: 'Application not found' });
+  try {
+    const updatedApp = await Application.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true }
+    );
+    
+    if (updatedApp) {
+      res.json({ id: updatedApp._id.toString(), status: updatedApp.status });
+    } else {
+      res.status(404).json({ error: 'Application not found' });
+    }
+  } catch (error) {
+    console.error('Error updating status:', error);
+    res.status(500).json({ error: 'Failed to update status' });
   }
 });
 

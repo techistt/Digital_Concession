@@ -3,6 +3,7 @@ import axios from 'axios';
 import React, { useState } from 'react';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
+import Constants from 'expo-constants';
 
 import {
   Alert,
@@ -461,8 +462,12 @@ export default function ApplicationScreen() {
         } as any
       );
 
+      const debuggerHost = Constants.expoConfig?.hostUri;
+      const localhost = debuggerHost?.split(':')[0] || 'localhost';
+      const apiUrl = `http://${localhost}:5000/api/applications`;
+
       const response = await axios.post(
-        'http://localhost:5000/api/applications',
+        apiUrl,
         data,
         {
           timeout: 30000,

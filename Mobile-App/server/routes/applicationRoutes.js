@@ -12,19 +12,7 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-
-  filename: (req, file, cb) => {
-    const uniqueName =
-      `${Date.now()}-${Math.round(Math.random() * 1e9)}` +
-      path.extname(file.originalname);
-
-    cb(null, uniqueName);
-  },
-});
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
   const allowedTypes = [
@@ -84,32 +72,20 @@ router.post(
         });
       }
 
+      const getBase64 = (fileArray) => {
+        if (!fileArray || !fileArray[0]) return null;
+        return `data:${fileArray[0].mimetype};base64,${fileArray[0].buffer.toString('base64')}`;
+      };
+
       const applicationData = {
         ...req.body,
-
-        studentPhoto: files.studentPhoto[0]
-          ? `/uploads/${files.studentPhoto[0].filename}`
-          : null,
-
-        studentIdCard: files.studentIdCard[0]
-          ? `/uploads/${files.studentIdCard[0].filename}`
-          : null,
-
-        aadhaarCard: files.aadhaarCard[0]
-          ? `/uploads/${files.aadhaarCard[0].filename}`
-          : null,
-
-        previousConcessionCard: files.previousConcessionCard?.[0]
-          ? `/uploads/${files.previousConcessionCard[0].filename}`
-          : null,
-
-        institutionApprovalForm: files.institutionApprovalForm[0]
-          ? `/uploads/${files.institutionApprovalForm[0].filename}`
-          : null,
-
-        rationCard: files.rationCard[0]
-          ? `/uploads/${files.rationCard[0].filename}`
-          : null,
+        aadhaar: req.body.aadhaarNumber, // Fix field mismatch
+        studentPhoto: getBase64(files.studentPhoto),
+        studentIdCard: getBase64(files.studentIdCard),
+        aadhaarCard: getBase64(files.aadhaarCard),
+        previousConcessionCard: getBase64(files.previousConcessionCard),
+        institutionApprovalForm: getBase64(files.institutionApprovalForm),
+        rationCard: getBase64(files.rationCard),
       };
 
       const application = await Application.create(applicationData);
