@@ -112,6 +112,9 @@ export default function DigitalPassScreen() {
             <Text style={styles.detail}>
               Inst: {application.institutionName}
             </Text>
+            <Text style={styles.detail}>
+              Route: {application.travelFrom} to {application.travelTo}
+            </Text>
           </View>
 
           <View style={styles.qrContainer}>

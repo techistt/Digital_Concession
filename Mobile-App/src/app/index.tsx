@@ -1,7 +1,33 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
+import { useEffect, useState } from "react";
 import { Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
 
+const WALKTHROUGH_KEY = "hasSeenWalkthroughPrompt";
+
 export default function HomeScreen() {
+  const [showWalkthroughPrompt, setShowWalkthroughPrompt] = useState(false);
+
+  useEffect(() => {
+    AsyncStorage.getItem(WALKTHROUGH_KEY)
+      .then((value) => {
+        if (!value) {
+          setShowWalkthroughPrompt(true);
+        }
+      })
+      .catch(console.error);
+  }, []);
+
+  const closeWalkthroughPrompt = async () => {
+    await AsyncStorage.setItem(WALKTHROUGH_KEY, "true");
+    setShowWalkthroughPrompt(false);
+  };
+
+  const openWalkthrough = async () => {
+    await closeWalkthroughPrompt();
+    router.push("/walkthrough" as any);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
@@ -46,8 +72,36 @@ export default function HomeScreen() {
           <Text style={styles.outlineButtonText}>Conductor Scanner</Text>
         </Pressable>
 
+        <Pressable
+          style={({ pressed }) => [
+            styles.linkButton,
+            pressed && styles.buttonPressed,
+          ]}
+          onPress={() => router.push("/walkthrough" as any)}
+        >
+          <Text style={styles.linkButtonText}>App Walkthrough</Text>
+        </Pressable>
+
         <Text style={styles.footer}>Student concession application portal</Text>
       </View>
+
+      {showWalkthroughPrompt && (
+        <View style={styles.promptOverlay}>
+          <View style={styles.promptCard}>
+            <Text style={styles.promptTitle}>Welcome</Text>
+            <Text style={styles.promptText}>
+              Take a quick walkthrough to see how to apply, view your pass, and
+              scan QR codes.
+            </Text>
+            <Pressable style={styles.promptPrimary} onPress={openWalkthrough}>
+              <Text style={styles.promptPrimaryText}>Go to Walkthrough</Text>
+            </Pressable>
+            <Pressable style={styles.promptSecondary} onPress={closeWalkthroughPrompt}>
+              <Text style={styles.promptSecondaryText}>No Thanks</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -141,6 +195,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
 
+  linkButton: {
+    height: 48,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    marginTop: 8,
+  },
+
+  linkButtonText: {
+    color: "#208AEF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+
   outlineButtonText: {
     color: "#344054",
     fontSize: 17,
@@ -167,5 +235,71 @@ const styles = StyleSheet.create({
     marginTop: 28,
     fontSize: 13,
     color: "#98A2B3",
+  },
+
+  promptOverlay: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: "rgba(16, 24, 40, 0.48)",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+
+  promptCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 24,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+
+  promptTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#172B4D",
+    marginBottom: 10,
+  },
+
+  promptText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: "#667085",
+    marginBottom: 22,
+  },
+
+  promptPrimary: {
+    height: 52,
+    borderRadius: 12,
+    backgroundColor: "#208AEF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+
+  promptPrimaryText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+
+  promptSecondary: {
+    height: 48,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  promptSecondaryText: {
+    color: "#667085",
+    fontSize: 15,
+    fontWeight: "600",
   },
 });

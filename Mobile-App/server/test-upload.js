@@ -21,6 +21,8 @@ async function testSubmit() {
   form.append('institutionDistrict', 'Test Inst Dist');
   form.append('course', 'Test Course');
   form.append('studentId', 'TEST-123');
+  form.append('travelFrom', 'Test Origin');
+  form.append('travelTo', 'Test Destination');
 
   // append dummy files
   const dummyFile = Buffer.from('hello world');

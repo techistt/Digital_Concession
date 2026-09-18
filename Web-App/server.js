@@ -33,6 +33,8 @@ const applicationSchema = new mongoose.Schema(
         institutionDistrict: { type: String, required: true },
         course: { type: String, required: true },
         studentId: { type: String, required: true },
+        travelFrom: { type: String, required: true },
+        travelTo: { type: String, required: true },
         studentPhoto: { type: String, required: true },
         studentIdCard: { type: String, required: true },
         aadhaarCard: { type: String, required: true },
@@ -47,6 +49,20 @@ const applicationSchema = new mongoose.Schema(
 
 const Application = mongoose.model('Application', applicationSchema);
 
+const formatAadhaar = (value = '') =>
+  value.replace(/\D/g, '').replace(/(\d{4})(?=\d)/g, '$1 ').trim();
+
+const getRoute = (app) => {
+  const travelFrom = app.travelFrom || 'Home';
+  const travelTo = app.travelTo || app.institutionName;
+
+  return {
+    travelFrom,
+    travelTo,
+    route: `${travelFrom} to ${travelTo}`,
+  };
+};
+
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/digital_concession')
     .then(() => console.log('MongoDB connected successfully.'))
@@ -57,7 +73,10 @@ app.get('/api/applications', async (req, res) => {
   try {
     const apps = await Application.find().sort({ createdAt: -1 });
     
-    const mappedApps = apps.map(app => ({
+    const mappedApps = apps.map(app => {
+      const routeDetails = getRoute(app);
+
+      return ({
       id: app._id.toString(),
       status: app.status,
       dateApplied: app.createdAt ? app.createdAt.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
@@ -67,7 +86,7 @@ app.get('/api/applications', async (req, res) => {
       gender: app.gender,
       guardianName: app.guardianName,
       phone: app.phone,
-      aadhaarNumber: app.aadhaar,
+      aadhaarNumber: formatAadhaar(app.aadhaar),
       email: app.email,
       address: app.address,
       place: app.place,
@@ -81,8 +100,9 @@ app.get('/api/applications', async (req, res) => {
       eligibilityCriteria: "Undergraduate Student", // Default or fetch if added
       rationCardType: "APL", // Default or fetch if added
       rationCardNumber: "N/A", // Default
-      travelFrom: "Home", // Default
-      travelTo: app.institutionName, // Default
+      travelFrom: routeDetails.travelFrom,
+      travelTo: routeDetails.travelTo,
+      route: routeDetails.route,
       durationMonths: 6, // Default
       nearestDepot: "Unknown", // Default
       remarks: "Submitted via Mobile App", // Default
@@ -94,7 +114,8 @@ app.get('/api/applications', async (req, res) => {
       prevConcessionUrl: app.previousConcessionCard,
       approvalFormUrl: app.institutionApprovalForm,
       rationCardUrl: app.rationCard
-    }));
+    });
+  });
 
     res.json(mappedApps);
   } catch (error) {
@@ -123,10 +144,13 @@ app.put('/api/applications/:id/status', async (req, res) => {
     if (status === 'approved') {
       const appDoc = await Application.findById(id);
       if (appDoc && !appDoc.qrToken) {
+        const routeDetails = getRoute(appDoc);
         const payload = JSON.stringify({
           id: appDoc._id.toString(),
           name: appDoc.fullName,
-          route: appDoc.institutionName,
+          route: routeDetails.route,
+          travelFrom: routeDetails.travelFrom,
+          travelTo: routeDetails.travelTo,
           expiry: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString() // 6 months
         });
         const signature = CryptoJS.HmacSHA256(payload, process.env.SECRET_KEY_CONDUCTOR || 'default_secret').toString();

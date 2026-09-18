@@ -104,6 +104,18 @@ const applicationSchema = new mongoose.Schema(
             trim: true,
         },
 
+        travelFrom: {
+            type: String,
+            required: true,
+            trim: true,
+        },
+
+        travelTo: {
+            type: String,
+            required: true,
+            trim: true,
+        },
+
         studentPhoto: {
             type: String,
             required: true,

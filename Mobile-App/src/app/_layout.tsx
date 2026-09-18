@@ -30,6 +30,14 @@ export default function RootLayout() {
             headerBackVisible: false,
           }}
         />
+
+        <Stack.Screen
+          name="walkthrough"
+          options={{
+            title: "App Walkthrough",
+            headerShown: false,
+          }}
+        />
       </Stack>
     </>
   );

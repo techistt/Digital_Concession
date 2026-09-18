@@ -111,7 +111,7 @@ export default function ConductorScannerScreen() {
             <Text style={styles.detailLabel}>Student Name</Text>
             <Text style={styles.detailValue}>{studentData?.name}</Text>
 
-            <Text style={styles.detailLabel}>Institution / Route</Text>
+            <Text style={styles.detailLabel}>Route</Text>
             <Text style={styles.detailValue}>{studentData?.route}</Text>
 
             <Text style={styles.detailLabel}>Valid Until</Text>
