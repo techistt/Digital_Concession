@@ -1,5 +1,5 @@
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
+import { Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 
 export default function RootLayout() {
   return (
@@ -10,7 +10,7 @@ export default function RootLayout() {
         <Stack.Screen
           name="index"
           options={{
-            title: 'Digital Bus Concession',
+            title: "Digital Bus Concession",
             headerShown: false,
           }}
         />
@@ -18,15 +18,15 @@ export default function RootLayout() {
         <Stack.Screen
           name="application"
           options={{
-            title: 'Bus Concession Application',
-            headerBackTitle: 'Back',
+            title: "Bus Concession Application",
+            headerBackTitle: "Back",
           }}
         />
 
         <Stack.Screen
           name="success"
           options={{
-            title: 'Application Submitted',
+            title: "Application Submitted",
             headerBackVisible: false,
           }}
         />

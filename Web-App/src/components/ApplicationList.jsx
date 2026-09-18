@@ -1,13 +1,22 @@
-import React from 'react';
-import { FileText } from 'lucide-react';
+import React from "react";
+import { FileText } from "lucide-react";
 
 const ApplicationList = ({ applications, onViewDetails }) => {
   if (applications.length === 0) {
     return (
-      <div style={{ textAlign: 'center', padding: '64px', color: 'var(--text-secondary)' }}>
-        <FileText size={48} style={{ margin: '0 auto 16px', opacity: 0.5 }} />
+      <div
+        style={{
+          textAlign: "center",
+          padding: "64px",
+          color: "var(--text-secondary)",
+        }}
+      >
+        <FileText size={48} style={{ margin: "0 auto 16px", opacity: 0.5 }} />
         <h2>No applications found.</h2>
-        <p>There are no {applications[0]?.status || 'pending'} applications at the moment.</p>
+        <p>
+          There are no {applications[0]?.status || "pending"} applications at
+          the moment.
+        </p>
       </div>
     );
   }
@@ -30,16 +39,31 @@ const ApplicationList = ({ applications, onViewDetails }) => {
             <tr key={app.id}>
               <td>
                 <div className="applicant-info">
-                  <img src={app.photoUrl} alt={app.studentName} className="applicant-photo" />
+                  <img
+                    src={app.photoUrl}
+                    alt={app.studentName}
+                    className="applicant-photo"
+                  />
                   <div>
                     <div style={{ fontWeight: 600 }}>{app.studentName}</div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{app.id}</div>
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        color: "var(--text-secondary)",
+                      }}
+                    >
+                      {app.id}
+                    </div>
                   </div>
                 </div>
               </td>
               <td>
                 <div style={{ fontWeight: 500 }}>{app.institution}</div>
-                <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{app.course}</div>
+                <div
+                  style={{ fontSize: "12px", color: "var(--text-secondary)" }}
+                >
+                  {app.course}
+                </div>
               </td>
               <td>{app.route}</td>
               <td>{new Date(app.dateApplied).toLocaleDateString()}</td>
@@ -49,7 +73,7 @@ const ApplicationList = ({ applications, onViewDetails }) => {
                 </span>
               </td>
               <td>
-                <button 
+                <button
                   className="action-btn"
                   onClick={() => onViewDetails(app)}
                 >

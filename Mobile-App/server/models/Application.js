@@ -139,6 +139,11 @@ const applicationSchema = new mongoose.Schema(
             enum: ['pending', 'approved', 'rejected'],
             default: 'pending',
         },
+        
+        qrToken: {
+            type: String,
+            default: null,
+        }
     },
     {
         timestamps: true,

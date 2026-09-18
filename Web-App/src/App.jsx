@@ -1,11 +1,9 @@
-import React from 'react'
-import Dashboard from './components/Dashboard'
-import './index.css'
+import React from "react";
+import Dashboard from "./components/Dashboard";
+import "./index.css";
 
 function App() {
-  return (
-    <Dashboard />
-  )
+  return <Dashboard />;
 }
 
-export default App
+export default App;

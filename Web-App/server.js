@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import CryptoJS from 'crypto-js';
 
 dotenv.config();
 
@@ -39,6 +40,7 @@ const applicationSchema = new mongoose.Schema(
         institutionApprovalForm: { type: String, required: true },
         rationCard: { type: String, required: true },
         status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+        qrToken: { type: String, default: null },
     },
     { timestamps: true }
 );
@@ -117,9 +119,24 @@ app.put('/api/applications/:id/status', async (req, res) => {
   const { status } = req.body;
   
   try {
+    let updateData = { status };
+    if (status === 'approved') {
+      const appDoc = await Application.findById(id);
+      if (appDoc && !appDoc.qrToken) {
+        const payload = JSON.stringify({
+          id: appDoc._id.toString(),
+          name: appDoc.fullName,
+          route: appDoc.institutionName,
+          expiry: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString() // 6 months
+        });
+        const signature = CryptoJS.HmacSHA256(payload, process.env.SECRET_KEY_CONDUCTOR || 'default_secret').toString();
+        updateData.qrToken = JSON.stringify({ payload, signature });
+      }
+    }
+
     const updatedApp = await Application.findByIdAndUpdate(
       id,
-      { status },
+      updateData,
       { new: true }
     );
     

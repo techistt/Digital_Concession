@@ -1,11 +1,5 @@
-import { router } from 'expo-router';
-import {
-  Pressable,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { router } from "expo-router";
+import { Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
 
 export default function HomeScreen() {
   return (
@@ -26,15 +20,33 @@ export default function HomeScreen() {
             styles.button,
             pressed && styles.buttonPressed,
           ]}
-          onPress={() => router.push('/application')}
+          onPress={() => router.push("/application")}
         >
           <Text style={styles.buttonText}>Apply for Bus Concession</Text>
           <Text style={styles.arrow}>→</Text>
         </Pressable>
 
-        <Text style={styles.footer}>
-          Student concession application portal
-        </Text>
+        <Pressable
+          style={({ pressed }) => [
+            styles.secondaryButton,
+            pressed && styles.buttonPressed,
+          ]}
+          onPress={() => router.push("/pass-login" as any)}
+        >
+          <Text style={styles.secondaryButtonText}>View Digital Pass</Text>
+        </Pressable>
+
+        <Pressable
+          style={({ pressed }) => [
+            styles.outlineButton,
+            pressed && styles.buttonPressed,
+          ]}
+          onPress={() => router.push("/conductor" as any)}
+        >
+          <Text style={styles.outlineButtonText}>Conductor Scanner</Text>
+        </Pressable>
+
+        <Text style={styles.footer}>Student concession application portal</Text>
       </View>
     </SafeAreaView>
   );
@@ -43,13 +55,13 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F9FF',
+    backgroundColor: "#F5F9FF",
   },
 
   content: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 28,
   },
 
@@ -57,9 +69,9 @@ const styles = StyleSheet.create({
     width: 110,
     height: 110,
     borderRadius: 55,
-    backgroundColor: '#E5F1FF',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#E5F1FF",
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 28,
   },
 
@@ -69,31 +81,70 @@ const styles = StyleSheet.create({
 
   title: {
     fontSize: 30,
-    fontWeight: '700',
-    color: '#172B4D',
-    textAlign: 'center',
+    fontWeight: "700",
+    color: "#172B4D",
+    textAlign: "center",
     marginBottom: 14,
   },
 
   subtitle: {
     fontSize: 16,
     lineHeight: 24,
-    color: '#667085',
-    textAlign: 'center',
+    color: "#667085",
+    textAlign: "center",
     maxWidth: 340,
     marginBottom: 38,
   },
 
   button: {
-    width: '100%',
+    width: "100%",
     maxWidth: 360,
     height: 58,
     borderRadius: 14,
-    backgroundColor: '#208AEF',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#208AEF",
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+
+  secondaryButton: {
+    width: "100%",
+    maxWidth: 360,
+    height: 58,
+    borderRadius: 14,
+    backgroundColor: "#E5F1FF",
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+
+  secondaryButtonText: {
+    color: "#208AEF",
+    fontSize: 17,
+    fontWeight: "600",
+  },
+
+  outlineButton: {
+    width: "100%",
+    maxWidth: 360,
+    height: 58,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: "#E4E7EC",
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+
+  outlineButtonText: {
+    color: "#344054",
+    fontSize: 17,
+    fontWeight: "600",
   },
 
   buttonPressed: {
@@ -101,13 +152,13 @@ const styles = StyleSheet.create({
   },
 
   buttonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 17,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 
   arrow: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 24,
     marginLeft: 12,
   },
@@ -115,6 +166,6 @@ const styles = StyleSheet.create({
   footer: {
     marginTop: 28,
     fontSize: 13,
-    color: '#98A2B3',
+    color: "#98A2B3",
   },
 });
