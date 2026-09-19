@@ -15,7 +15,7 @@ import {
 } from "react-native";
 
 const API_URL =
-  Platform.OS === "web" ? "http://localhost:5000" : "http://192.168.220.34:5000";
+  process.env.EXPO_PUBLIC_APP_API_URL || "https://digital-concession.onrender.com";
 
 type FormDataType = {
   fullName: string;
