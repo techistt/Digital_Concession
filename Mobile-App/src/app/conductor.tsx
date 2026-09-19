@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { router } from "expo-router";
-import CryptoJS from "crypto-js";
+
 
 export default function ConductorScannerScreen() {
   const [permission, requestPermission] = useCameraPermissions();
@@ -55,39 +55,39 @@ export default function ConductorScannerScreen() {
     verifyQRCode(data);
   };
 
-  const verifyQRCode = (qrString: string) => {
+  const verifyQRCode = async (qrString: string) => {
     try {
-      // The qrToken is a JSON string containing { payload, signature }
-      const parsedData = JSON.parse(qrString);
+      const response = await fetch(
+        "https://digital-concession-1.onrender.com/api/verify-qr",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            qrToken: qrString,
+          }),
+        },
+      );
 
-      if (!parsedData.payload || !parsedData.signature) {
-        setScanResult("invalid");
-        return;
-      }
+      const result = await response.json();
 
-      // Verify HMAC-SHA256 signature
-      const expectedSignature = CryptoJS.HmacSHA256(
-        parsedData.payload,
-        process.env.EXPO_PUBLIC_SECRET_KEY_CONDUCTOR || "default_secret",
-      ).toString();
+      if (result.valid && result.student) {
+        setStudentData({
+          name: result.student.name,
+          route: result.student.route,
+          travelFrom: result.student.travelFrom,
+          travelTo: result.student.travelTo,
+          expiry: result.student.expiry,
+          photoUrl: result.student.photoUrl,
+        });
 
-      if (expectedSignature === parsedData.signature) {
-        const payloadData = JSON.parse(parsedData.payload);
-
-        // Check expiry
-        const expiryDate = new Date(payloadData.expiry);
-        if (expiryDate < new Date()) {
-          Alert.alert("Expired", "This concession pass has expired.");
-          setScanResult("invalid");
-          return;
-        }
-
-        setStudentData(payloadData);
         setScanResult("valid");
       } else {
         setScanResult("invalid");
       }
     } catch (error) {
+      console.error("QR verification error:", error);
       setScanResult("invalid");
     }
   };
