@@ -167,6 +167,7 @@ export default function ConductorScannerScreen() {
 
       <View style={styles.cameraContainer}>
         <CameraView
+          autofocus="on"
           style={StyleSheet.absoluteFill}
           barcodeScannerSettings={{
             barcodeTypes: ["qr"],
