@@ -287,6 +287,113 @@ app.get("/api/applications/:id", async (req, res) => {
 // POST
 // Student applications should NOT be created here
 // --------------------------------------------------
+app.post("/api/verify-qr", async (req, res) => {
+  try {
+    const { qrToken } = req.body;
+
+    if (!qrToken) {
+      return res.status(400).json({
+        success: false,
+        valid: false,
+        error: "QR token is required",
+      });
+    }
+
+    let parsedQr;
+
+    try {
+      parsedQr =
+        typeof qrToken === "string"
+          ? JSON.parse(qrToken)
+          : qrToken;
+    } catch {
+      return res.status(400).json({
+        success: false,
+        valid: false,
+        error: "Invalid QR format",
+      });
+    }
+
+    if (!parsedQr.payload || !parsedQr.signature) {
+      return res.status(400).json({
+        success: false,
+        valid: false,
+        error: "Invalid QR token",
+      });
+    }
+
+    const secret =
+      process.env.SECRET_KEY_CONDUCTOR || "CHANGE_THIS_SECRET";
+
+    const expectedSignature = CryptoJS.HmacSHA256(
+      parsedQr.payload,
+      secret
+    ).toString();
+
+    if (expectedSignature !== parsedQr.signature) {
+      return res.status(401).json({
+        success: false,
+        valid: false,
+        error: "Invalid QR signature",
+      });
+    }
+
+    const payloadData = JSON.parse(parsedQr.payload);
+
+    const expiryDate = new Date(payloadData.expiry);
+
+    if (
+      Number.isNaN(expiryDate.getTime()) ||
+      expiryDate < new Date()
+    ) {
+      return res.status(401).json({
+        success: false,
+        valid: false,
+        error: "Pass has expired",
+      });
+    }
+
+    const application = await Application.findById(payloadData.id);
+
+    if (!application) {
+      return res.status(404).json({
+        success: false,
+        valid: false,
+        error: "Application not found",
+      });
+    }
+
+    if (application.status !== "approved") {
+      return res.status(401).json({
+        success: false,
+        valid: false,
+        error: "Pass is not approved",
+      });
+    }
+
+    res.json({
+      success: true,
+      valid: true,
+      student: {
+        id: application._id.toString(),
+        name: application.fullName,
+        photoUrl: application.studentPhoto,
+        route: `${application.travelFrom} to ${application.travelTo}`,
+        travelFrom: application.travelFrom,
+        travelTo: application.travelTo,
+        expiry: payloadData.expiry,
+      },
+    });
+  } catch (error) {
+    console.error("QR verification error:", error);
+
+    res.status(500).json({
+      success: false,
+      valid: false,
+      error: "QR verification failed",
+    });
+  }
+});
 
 app.post("/api/applications", async (req, res) => {
   res.status(405).json({
@@ -388,10 +495,7 @@ app.put("/api/applications/:id/status", async (req, res) => {
 
 async function startServer() {
   try {
-    const mongoUri =
-      process.env.MONGODB_URI ||
-      "mongodb://localhost:27017/digital_concession";
-
+    const MONGODB_URI = process.env.MONGODB_URI;
     await mongoose.connect(mongoUri);
 
     console.log("MongoDB connected successfully.");
