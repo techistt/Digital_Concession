@@ -11,6 +11,10 @@ import { mockApplications } from "../data/mockApplications";
 import ApplicationList from "./ApplicationList";
 import ReviewModal from "./ReviewModal";
 
+const ADMIN_API_URL =
+  import.meta.env.VITE_ADMIN_API_URL ||
+  "https://digital-concession-admin-api.onrender.com";
+
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("pending");
   const [applications, setApplications] = useState([]);
@@ -20,7 +24,7 @@ const Dashboard = () => {
   // Fetch applications from the Express backend
   const fetchApplications = async () => {
     try {
-      const response = await fetch("http://localhost:3001/api/applications");
+      const response = await fetch(`${ADMIN_API_URL}/api/applications`);
       if (response.ok) {
         const data = await response.json();
         setApplications(data);
@@ -45,7 +49,7 @@ const Dashboard = () => {
 
   const handleApprove = async (id) => {
     try {
-      await fetch(`http://localhost:3001/api/applications/${id}/status`, {
+      await fetch(`${ADMIN_API_URL}/api/applications/${id}/status`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "approved" }),
@@ -70,7 +74,7 @@ const Dashboard = () => {
 
   const handleReject = async (id) => {
     try {
-      await fetch(`http://localhost:3001/api/applications/${id}/status`, {
+      await fetch(`${ADMIN_API_URL}/api/applications/${id}/status`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "rejected" }),

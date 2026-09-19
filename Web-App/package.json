@@ -1,20 +1,19 @@
 {
-  "name": "anavandi-selection",
+  "name": "digital-concession-admin",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "start": "node server.js",
     "lint": "oxlint",
     "preview": "vite preview"
   },
   "dependencies": {
     "cors": "^2.8.6",
-    "crypto": "^1.0.1",
     "crypto-js": "^4.2.0",
     "dotenv": "^17.4.2",
-    "expo": "^57.0.23",
     "express": "^5.2.1",
     "lucide-react": "^1.46.0",
     "mongoose": "^9.10.1",
