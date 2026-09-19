@@ -10,8 +10,10 @@ import {
 } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import axios from "axios";
-import Constants from "expo-constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const API_URL =
+  process.env.EXPO_PUBLIC_APP_API_URL || "https://digital-concession.onrender.com";
 
 export default function DigitalPassScreen() {
   const { id } = useLocalSearchParams();
@@ -23,13 +25,14 @@ export default function DigitalPassScreen() {
   useEffect(() => {
     const fetchApplication = async () => {
       try {
-        const debuggerHost = Constants.expoConfig?.hostUri;
-        const localhost = debuggerHost?.split(":")[0] || "localhost";
-        const apiUrl = `http://${localhost}:5000/api/applications/${appId}`;
+        if (!appId) {
+          setError("Application ID is missing.");
+          return;
+        }
 
-        const response = await axios.get(apiUrl);
-        if (response.data.success) {
-          setApplication(response.data.application);
+        const response = await axios.get(`${API_URL}/api/applications/${appId}`);
+        if (response.data) {
+          setApplication(response.data.application || response.data);
         } else {
           setError("Failed to fetch pass data.");
         }
