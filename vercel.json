@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "buildCommand": "node build-vercel.js",
+  "outputDirectory": "vercel-output",
+  "routes": [
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/admin(?:/.*)?",
+      "dest": "/admin/index.html"
+    }
+  ]
+}

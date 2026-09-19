@@ -1,0 +1,11 @@
+{
+  "scripts": {
+    "build": "node build-vercel.js"
+  },
+  "dependencies": {
+    "mongodb": "^7.6.0"
+  },
+  "devDependencies": {
+    "vercel": "^59.23.2"
+  }
+}

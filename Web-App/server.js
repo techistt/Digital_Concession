@@ -496,7 +496,7 @@ app.put("/api/applications/:id/status", async (req, res) => {
 async function startServer() {
   try {
     const MONGODB_URI = process.env.MONGODB_URI;
-    await mongoose.connect(mongoUri);
+    await mongoose.connect(MONGODB_URI);
 
     console.log("MongoDB connected successfully.");
 
